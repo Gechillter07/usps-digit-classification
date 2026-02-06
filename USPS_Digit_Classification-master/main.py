@@ -68,7 +68,7 @@ def train_lr(X, y):
     print("Training Logistic Regression...")
     X_b = add_ones(X)
     theta = np.zeros((X_b.shape[1], 10))
-    for i in range(100):
+    for i in range(500):
         probs = softmax(np.dot(X_b, theta))
         grad = np.dot(X_b.T, (probs - y)) / len(X_b)
         theta -= 0.5 * grad
