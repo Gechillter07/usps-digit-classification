@@ -89,7 +89,7 @@ if img_final is not None and weights is not None:
     prediction = np.argmax(np.dot(img_with_bias, weights))
     
     st.divider()
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2.5)
     with col1:
         st.write("### KI-Sicht")
         st.image(img_final, width=150, clamp=True)
@@ -101,3 +101,4 @@ if img_final is not None and weights is not None:
     with st.expander("Mathematik dahinter"):
         st.write("Die KI berechnet ein Punktprodukt aus der 784-Pixel-Matrix und den gelernten Gewichten.")
         st.write(f"Vektor-Dimension: {img_flat.shape}")
+
