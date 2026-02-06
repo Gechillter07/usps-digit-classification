@@ -6,7 +6,7 @@ import gzip
 import os
 from streamlit_drawable_canvas import st_canvas
 
-# --- HILFSFUNKTIONEN (wie in main.py) ---
+# --- HILFSFUNKTIONEN ---
 def softmax(t):
     exps = np.exp(t - np.max(t, axis=1, keepdims=True))
     return exps / np.sum(exps, axis=1, keepdims=True)
@@ -14,82 +14,90 @@ def softmax(t):
 def train_lr_simple(X, y):
     X_b = np.hstack((np.ones((X.shape[0], 1)), X))
     theta = np.zeros((X_b.shape[1], 10))
-    for i in range(50): # Kurzes Training für die Web-Demo
+    for i in range(50):
         probs = softmax(np.dot(X_b, theta))
         grad = np.dot(X_b.T, (probs - y)) / len(X_b)
         theta -= 0.5 * grad
     return theta
 
-
-
-# --- SEITEN-DESIGN ---
-st.set_page_config(page_title="KI Wahrnehmung - Daniel Wirth", layout="centered")
-st.title("🖊️ KI-Ziffernerkennung")
-st.write("Projekt von Daniel Wirth – Fokus: Wahrnehmung in der Robotik")
-
-# --- MODEL LADEN / TRAINIEREN ---
+# --- MODEL LADEN (Caching für Speed) ---
+@st.cache_resource
 def get_model():
-    # Wir suchen erst im aktuellen Ordner, dann eine Ebene höher
-    possible_paths = [
-        os.path.join(os.getcwd(), 'mnist.pkl'),
-        os.path.join(os.getcwd(), 'USPS_Digit_Classification-master', 'mnist.pkl'),
-        'mnist.pkl'
-    ]
+    # Pfad-Suche: Schaut direkt im App-Ordner
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    pickle_file = os.path.join(current_dir, 'mnist.pkl')
     
-    pickle_file = None
-    for path in possible_paths:
-        if os.path.exists(path):
-            pickle_file = path
-            break
-            
-    if not pickle_file:
-        st.error("KI-Daten (mnist.pkl) konnten nirgendwo gefunden werden!")
-        st.write("Aktueller Pfad:", os.getcwd())
-        st.write("Dateien hier:", os.listdir(os.getcwd()))
-        return None
+    if not os.path.exists(pickle_file):
+        # Fallback für Cloud-Strukturen
+        pickle_file = 'mnist.pkl'
 
-    with gzip.open(pickle_file, 'rb') as f:
-        save = pickle.load(f, encoding='latin1')
-    
-    tr_d = save[0][0]
-    tr_l_raw = save[0][1]
-    # One-Hot Encoding
-    tr_l = (np.arange(10) == tr_l_raw[:,None]).astype(np.float32)
-    
-    # Modell trainieren
-    weights = train_lr_simple(tr_d[:10000], tr_l[:10000])
-    return weights
+    try:
+        with gzip.open(pickle_file, 'rb') as f:
+            save = pickle.load(f, encoding='latin1')
+        tr_d = save[0][0]
+        tr_l_raw = save[0][1]
+        tr_l = (np.arange(10) == tr_l_raw[:,None]).astype(np.float32)
+        return train_lr_simple(tr_d[:10000], tr_l[:10000])
+    except Exception as e:
+        st.error(f"Fehler beim Laden der Daten: {e}")
+        return None
 
 weights = get_model()
 
-# --- UPLOAD BEREICH ---
-uploaded_file = st.file_uploader("Lade ein Foto deiner Ziffer hoch (PNG/JPG)", type=["png", "jpg", "jpeg"])
+# --- UI DESIGN ---
+st.set_page_config(page_title="KI Wahrnehmung - Daniel Wirth", layout="centered")
+st.title("🖊️ KI-Ziffernerkennung")
+st.write("Seminarfach-Projekt: Wahrnehmung in der Robotik")
 
-if uploaded_file is not None:
-    # Bild einlesen
-    file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-    img = cv2.imdecode(file_bytes, 0)
-    
-    # Vorverarbeitung (Preprocessing)
-    img_res = cv2.resize(img, (28, 28))
-    img_final = 1 - np.array(img_res, "float32") / 255
+# Auswahl der Eingabemethode
+methode = st.radio("Wähle eine Eingabemethode:", ("Live Zeichnen", "Bild hochladen"))
+
+img_final = None
+
+if methode == "Live Zeichnen":
+    st.write("Zeichne eine Ziffer in das schwarze Feld:")
+    canvas_result = st_canvas(
+        fill_color="rgba(255, 255, 255, 1)",
+        stroke_width=20,
+        stroke_color="#FFFFFF",
+        background_color="#000000",
+        height=280,
+        width=280,
+        drawing_mode="freedraw",
+        key="canvas",
+    )
+    if canvas_result.image_data is not None:
+        # Konvertierung: RGBA -> Graustufen -> 28x28
+        img_raw = canvas_result.image_data.astype(np.uint8)
+        img_gray = cv2.cvtColor(img_raw, cv2.COLOR_RGBA2GRAY)
+        img_final = cv2.resize(img_gray, (28, 28)).astype("float32") / 255
+
+else:
+    uploaded_file = st.file_uploader("Foto hochladen (PNG/JPG)", type=["png", "jpg", "jpeg"])
+    if uploaded_file is not None:
+        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+        img = cv2.imdecode(file_bytes, 0)
+        img_res = cv2.resize(img, (28, 28))
+        # Invertieren für Fotos (da meist schwarz auf weiß geschrieben wird)
+        img_final = 1 - (img_res.astype("float32") / 255)
+
+# --- AUSWERTUNG ---
+if img_final is not None and weights is not None:
+    # Prediction
     img_flat = img_final.flatten().reshape(1, -1)
     img_with_bias = np.hstack((np.ones((1, 1)), img_flat))
-    
-    # Vorhersage (Prediction)
     prediction = np.argmax(np.dot(img_with_bias, weights))
     
-    # Anzeige im Browser
+    st.divider()
     col1, col2 = st.columns(2)
     with col1:
-        st.image(img, caption="Original-Foto", use_container_width=True)
+        st.write("### KI-Sicht")
+        st.image(img_final, width=150, clamp=True)
     with col2:
-        st.image(img_final, caption="KI-Wahrnehmung (28x28)", use_container_width=True, clamp=True)
-    
-    st.header(f"Ergebnis: Die KI erkennt eine **{prediction}**")
-
-    # Zusatz-Info für die Prüfer
-    with st.expander("Technische Details anzeigen"):
-        st.write("Hier siehst du die numerische Matrix, die die KI verarbeitet:")
-        st.dataframe(img_final)
-
+        st.write("### Ergebnis")
+        st.header(f"Zahl: {prediction}")
+        
+    # Kleiner technischer Insight für die Lehrer
+    with st.expander("Mathematik dahinter"):
+        st.write("Die KI berechnet ein Punktprodukt aus der 784-Pixel-Matrix und den gelernten Gewichten.")
+        st.write(f"Vektor-Dimension: {img_flat.shape}")
