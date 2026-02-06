@@ -90,7 +90,7 @@ def train_snn(X, y_raw):
 
     with tf.Session(graph=graph) as sess:
         tf.global_variables_initializer().run()
-        for step in range(1000):
+        for step in range(5000):
             sess.run(opt, feed_dict={tf_train: X[:5000], tf_labels: reformat(y_raw[:5000])})
         return sess.run(w), sess.run(b)
 
