@@ -24,22 +24,29 @@ st.set_page_config(page_title="KI Wahrnehmung - Daniel Wirth", layout="centered"
 st.title("🖊️ KI-Ziffernerkennung")
 st.write("Projekt von Daniel Wirth – Fokus: Wahrnehmung in der Robotik")
 
-@st.cache_resource
+# --- MODEL LADEN / TRAINIEREN ---
 def get_model():
-    # Dieser Befehl findet den Ordner heraus, in dem die app.py gerade liegt
-    aktueller_ordner = os.path.dirname(os.path.abspath(__file__))
-    pickle_file = os.path.join(aktueller_ordner, 'mnist.pkl')
+    # Wir suchen erst im aktuellen Ordner, dann eine Ebene höher
+    possible_paths = [
+        os.path.join(os.getcwd(), 'mnist.pkl'),
+        os.path.join(os.getcwd(), 'USPS_Digit_Classification-master', 'mnist.pkl'),
+        'mnist.pkl'
+    ]
     
-    # Prüfen, ob die Datei wirklich da ist (für das Log)
-    if not os.path.exists(pickle_file):
-        st.error(f"Datei nicht gefunden: {pickle_file}")
-        st.write("Vorhandene Dateien im Ordner:", os.listdir(aktueller_ordner))
+    pickle_file = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            pickle_file = path
+            break
+            
+    if not pickle_file:
+        st.error("KI-Daten (mnist.pkl) konnten nirgendwo gefunden werden!")
+        st.write("Aktueller Pfad:", os.getcwd())
+        st.write("Dateien hier:", os.listdir(os.getcwd()))
         return None
 
     with gzip.open(pickle_file, 'rb') as f:
         save = pickle.load(f, encoding='latin1')
-    
-    # ... restlicher Code wie vorher ...
     
     tr_d = save[0][0]
     tr_l_raw = save[0][1]
@@ -81,5 +88,4 @@ if uploaded_file is not None:
     # Zusatz-Info für die Prüfer
     with st.expander("Technische Details anzeigen"):
         st.write("Hier siehst du die numerische Matrix, die die KI verarbeitet:")
-
         st.dataframe(img_final)
