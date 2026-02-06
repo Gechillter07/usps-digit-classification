@@ -4,6 +4,7 @@ import cv2
 import pickle
 import gzip
 import os
+from streamlit_drawable_canvas import st_canvas
 
 # --- HILFSFUNKTIONEN (wie in main.py) ---
 def softmax(t):
@@ -18,6 +19,8 @@ def train_lr_simple(X, y):
         grad = np.dot(X_b.T, (probs - y)) / len(X_b)
         theta -= 0.5 * grad
     return theta
+
+
 
 # --- SEITEN-DESIGN ---
 st.set_page_config(page_title="KI Wahrnehmung - Daniel Wirth", layout="centered")
@@ -89,3 +92,4 @@ if uploaded_file is not None:
     with st.expander("Technische Details anzeigen"):
         st.write("Hier siehst du die numerische Matrix, die die KI verarbeitet:")
         st.dataframe(img_final)
+
