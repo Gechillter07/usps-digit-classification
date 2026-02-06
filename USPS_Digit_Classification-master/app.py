@@ -58,7 +58,7 @@ if methode == "Live Zeichnen":
     st.write("Zeichne eine Ziffer in das schwarze Feld:")
     canvas_result = st_canvas(
         fill_color="rgba(255, 255, 255, 1)",
-        stroke_width=20,
+        stroke_width=30,
         stroke_color="#FFFFFF",
         background_color="#000000",
         height=280,
@@ -101,5 +101,6 @@ if img_final is not None and weights is not None:
     with st.expander("Mathematik dahinter"):
         st.write("Die KI berechnet ein Punktprodukt aus der 784-Pixel-Matrix und den gelernten Gewichten.")
         st.write(f"Vektor-Dimension: {img_flat.shape}")
+
 
 
