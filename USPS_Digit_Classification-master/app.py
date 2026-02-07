@@ -32,6 +32,7 @@ def get_model():
     except:
         st.error("Gewichts-Datei nicht gefunden!")
         return None
+
 weights = get_model()
 
 # --- UI DESIGN ---
@@ -91,8 +92,6 @@ if img_final is not None and weights is not None:
     with st.expander("Mathematik dahinter"):
         st.write("Die KI berechnet ein Punktprodukt aus der 784-Pixel-Matrix und den gelernten Gewichten.")
         st.write(f"Vektor-Dimension: {img_flat.shape}")
-
-
 
 
 
