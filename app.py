@@ -59,28 +59,42 @@ if canvas_result.image_data is not None:
         img_28 = cv2.resize(processed, (28, 28), interpolation=cv2.INTER_AREA)
         img_28 = cv2.GaussianBlur(img_28, (3, 3), 0)
         
-        # 2. KI Prediction
+        # 2. KI Prediction & Wahrscheinlichkeiten
         img_final = img_28.reshape(1, 784).astype("float32") / 255.0
         img_with_bias = np.hstack((np.ones((1, 1)), img_final))
-        prediction = np.argmax(np.dot(img_with_bias, weights))
         
-        # --- TECHNISCHER TEIL (ANZEIGE) ---
+        # Berechnung der Rohwerte (Logits)
+        logits = np.dot(img_with_bias, weights)
+        
+        # Softmax-Funktion für Wahrscheinlichkeiten
+        exp_logits = np.exp(logits - np.max(logits)) # Numerische Stabilität
+        probabilities = (exp_logits / exp_logits.sum())[0]
+        
+        prediction = np.argmax(probabilities)
+        
+        # --- ANZEIGE ---
         st.divider()
         col1, col2 = st.columns(2)
         
         with col1:
             st.write("### KI-Wahrnehmung")
-            st.image(img_28, width=150, caption="Zentriertes 28x28 Bild")
+            st.image(img_28, width=150, caption="Zentriert & Skaliert (28x28)")
             
         with col2:
             st.write("### Ergebnis")
-            st.markdown(f"<h1 style='color: #FF4B4B; font-size: 80px;'>{prediction}</h1>", unsafe_allow_html=True)
+            st.markdown(f"<h1 style='color: #FF4B4B; font-size: 80px; margin-top: -20px;'>{prediction}</h1>", unsafe_allow_html=True)
+            st.write(f"Sicherheit: **{probabilities[prediction]*100:.1f}%**")
 
-        # Der mathematische Insight für die Lehrer
-        with st.expander("🛠️ Technische Details & Mathematik"):
-            st.write("**Preprocessing:** Bounding-Box Extraktion & Bikubische Interpolation.")
-            st.write(f"**Eingabevektor:** 785 Dimensionen (784 Pixel + 1 Bias-Term).")
-            st.write("**Klassifikator:** Multinomiale Logistische Regression.")
-            st.latex(r"P(y=i|x) = \frac{e^{x^T w_i}}{\sum_{j=0}^{9} e^{x^T w_j}}")
-    else:
-        st.info("Zeichne eine Zahl, um die Analyse zu starten.")
+        # --- NEU: WAHRSCHEINLICHKEITS-DIAGRAMM ---
+        st.write("### Wahrscheinlichkeits-Verteilung")
+        
+        # Erstellung der Balken
+        chart_data = {str(i): probabilities[i] for i in range(10)}
+        st.bar_chart(chart_data)
+
+        # Technischer Expander (jetzt ohne die große Formel, Fokus auf Prozess)
+        with st.expander("🛠️ Wie die KI entscheidet"):
+            st.write("1. **Normalisierung:** Das Bild wird auf Werte zwischen 0 und 1 skaliert.")
+            st.write("2. **Skalarprodukt:** Das System multipliziert die 785 Eingabewerte mit der gelernten Gewichtsmatrix.")
+            st.write("3. **Softmax-Layer:** Die Ergebnisse werden in Wahrscheinlichkeiten umgewandelt. Der höchste Balken gewinnt.")
+
