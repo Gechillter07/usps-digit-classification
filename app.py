@@ -28,7 +28,7 @@ if weights is None:
 
 # Zeichenfeld
 canvas_result = st_canvas(
-    stroke_width=18,
+    stroke_width=14,
     stroke_color="#FFFFFF",
     background_color="#000000",
     height=280,
@@ -97,4 +97,5 @@ if canvas_result.image_data is not None:
             st.write("1. **Normalisierung:** Das Bild wird auf Werte zwischen 0 und 1 skaliert.")
             st.write("2. **Skalarprodukt:** Das System multipliziert die 785 Eingabewerte mit der gelernten Gewichtsmatrix.")
             st.write("3. **Softmax-Layer:** Die Ergebnisse werden in Wahrscheinlichkeiten umgewandelt. Der höchste Balken gewinnt.")
+
 
