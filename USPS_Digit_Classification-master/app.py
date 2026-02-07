@@ -79,25 +79,53 @@ else:
         img_final = 1 - (img_res.astype("float32") / 255)
 
 # --- AUSWERTUNG ---
-if img_final is not None and weights is not None:
-    # Prediction
-    img_flat = img_final.flatten().reshape(1, -1)
-    img_with_bias = np.hstack((np.ones((1, 1)), img_flat))
-    prediction = np.argmax(np.dot(img_with_bias, weights))
+if canvas_result.image_data is not None:
+    # --- SCHRITT 1: VORVERARBEITUNG (Das "Gehirn" vor der KI) ---
+    img = canvas_result.image_data.astype(np.uint8)
+    img = cv2.cvtColor(img, cv2.COLOR_RGBA2GRAY)
     
-    st.divider()
-    col1, col2 = st.columns(2)
-    with col1:
-        st.write("### KI-Sicht")
-        st.image(img_final, width=150, clamp=True)
-    with col2:
-        st.write("### Ergebnis")
-        st.header(f"Zahl: {prediction}")
+    # Bounding Box finden: Wo wurde wirklich gezeichnet?
+    coords = cv2.findNonZero(img)
+    if coords is not None:
+        x, y, w, h = cv2.boundingRect(coords)
+        img_cropped = img[y:y+h, x:x+w]
         
-    # Kleiner technischer Insight für die Lehrer
-    with st.expander("Mathematik dahinter"):
-        st.write("Die KI berechnet ein Punktprodukt aus der 784-Pixel-Matrix und den gelernten Gewichten.")
-        st.write(f"Vektor-Dimension: {img_flat.shape}")
+        # Quadratisch machen & Padding (MNIST-Stil)
+        size = max(w, h) + 30 
+        final_img = np.zeros((size, size), dtype=np.uint8)
+        offset_x, offset_y = (size - w) // 2, (size - h) // 2
+        final_img[offset_y:offset_y+h, offset_x:offset_x+w] = img_cropped
+        
+        # Auf 28x28 skalieren und leicht weichzeichnen
+        img_res = cv2.resize(final_img, (28, 28), interpolation=cv2.INTER_AREA)
+        img_res = cv2.GaussianBlur(img_res, (3, 3), 0)
+        
+        # Normalisieren
+        img_final = img_res.astype("float32") / 255.0
+    else:
+        img_final = None
+
+    # --- SCHRITT 2: DEIN BESTEHENDER CODE (Anzeige & Prediction) ---
+    if img_final is not None and weights is not None:
+        # Prediction
+        img_flat = img_final.flatten().reshape(1, -1)
+        img_with_bias = np.hstack((np.ones((1, 1)), img_flat))
+        prediction = np.argmax(np.dot(img_with_bias, weights))
+        
+        st.divider()
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("### KI-Sicht")
+            # Hier zeigen wir das 28x28 Bild, damit die Lehrer sehen, was die KI sieht
+            st.image(img_final, width=150) 
+        with col2:
+            st.write("### Ergebnis")
+            st.header(f"Zahl: {prediction}")
+            
+        with st.expander("Mathematik dahinter"):
+            st.write("Die KI berechnet ein Punktprodukt aus der 784-Pixel-Matrix und den gelernten Gewichten.")
+            st.write(f"Vektor-Dimension: {img_flat.shape}")
+
 
 
 
