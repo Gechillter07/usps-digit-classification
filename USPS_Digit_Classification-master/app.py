@@ -23,25 +23,15 @@ def train_lr_simple(X, y):
 # --- MODEL LADEN (Caching für Speed) ---
 @st.cache_resource
 def get_model():
-    # Pfad-Suche: Schaut direkt im App-Ordner
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    pickle_file = os.path.join(current_dir, 'mnist.pkl')
-    
-    if not os.path.exists(pickle_file):
-        # Fallback für Cloud-Strukturen
-        pickle_file = 'mnist.pkl'
-
+    # Wir laden direkt die fertigen Gewichte statt neu zu trainieren
+    datei_name = 'fertige_gewichte.pkl'
     try:
-        with gzip.open(pickle_file, 'rb') as f:
-            save = pickle.load(f, encoding='latin1')
-        tr_d = save[0][0]
-        tr_l_raw = save[0][1]
-        tr_l = (np.arange(10) == tr_l_raw[:,None]).astype(np.float32)
-        return train_lr_simple(tr_d[:10000], tr_l[:10000])
-    except Exception as e:
-        st.error(f"Fehler beim Laden der Daten: {e}")
+        with open(datei_name, 'rb') as f:
+            weights = pickle.load(f)
+        return weights
+    except:
+        st.error("Gewichts-Datei nicht gefunden!")
         return None
-
 weights = get_model()
 
 # --- UI DESIGN ---
@@ -101,6 +91,7 @@ if img_final is not None and weights is not None:
     with st.expander("Mathematik dahinter"):
         st.write("Die KI berechnet ein Punktprodukt aus der 784-Pixel-Matrix und den gelernten Gewichten.")
         st.write(f"Vektor-Dimension: {img_flat.shape}")
+
 
 
 
