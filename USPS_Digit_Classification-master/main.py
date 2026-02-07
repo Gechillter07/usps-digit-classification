@@ -147,6 +147,9 @@ def main():
     erkenne_eigene_datei("meine_zahl.png", w_lr)
 
     print("\n--- DEMO BEENDET ---")
+with open('fertige_gewichte.pkl', 'wb') as f:
+    pickle.dump(weights, f)
 
 if __name__ == "__main__":
     main()
+
