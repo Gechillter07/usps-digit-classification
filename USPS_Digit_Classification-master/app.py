@@ -61,10 +61,11 @@ if methode == "Live Zeichnen":
         width=280,
         drawing_mode="freedraw",
         key="canvas",
-        img_res = cv2.GaussianBlur(img_res, (3, 3), 0),
+        
     )
     if canvas_result.image_data is not None:
         # Konvertierung: RGBA -> Graustufen -> 28x28
+        img_res = cv2.GaussianBlur(img_res, (3, 3), 0),
         img_raw = canvas_result.image_data.astype(np.uint8)
         img_gray = cv2.cvtColor(img_raw, cv2.COLOR_RGBA2GRAY)
         img_final = cv2.resize(img_gray, (28, 28)).astype("float32") / 255
@@ -98,6 +99,7 @@ if img_final is not None and weights is not None:
     with st.expander("Mathematik dahinter"):
         st.write("Die KI berechnet ein Punktprodukt aus der 784-Pixel-Matrix und den gelernten Gewichten.")
         st.write(f"Vektor-Dimension: {img_flat.shape}")
+
 
 
 
